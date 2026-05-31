@@ -23,15 +23,31 @@ A Spring AI MCP (Model Context Protocol) server that exposes unicorn rental tool
 
 - Java 21+
 - Maven 3.9+
+- Node.js (for MCP Inspector)
 
-## Build & Run
+## Quick Start
 
 ```bash
-./mvnw clean package
+# 1. Clone and start the server
+git clone https://github.com/VarshaDas/unicorn-mcp-server.git
+cd unicorn-mcp-server
 ./mvnw spring-boot:run
 ```
 
-Server starts on **http://localhost:8083**. MCP endpoint: `http://localhost:8083/mcp`
+Wait for `Started McpServerApplication` in the logs. Server runs on **http://localhost:8083**, MCP endpoint at `http://localhost:8083/mcp`.
+
+```bash
+# 2. In a separate terminal — launch MCP Inspector
+npx @modelcontextprotocol/inspector
+```
+
+3. Open http://localhost:6274 in your browser
+4. Select transport: **Streamable HTTP**
+5. Enter URL: `http://localhost:8083/mcp`
+6. Click **Connect** → you'll see all 6 tools
+7. Click any tool → fill in parameters → **Run**
+
+That's it. You're talking to the MCP server.
 
 ---
 
