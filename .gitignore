@@ -7,3 +7,6 @@ target/
 *.log
 *.mv.db
 *.lock.db
+
+# Demo and notes files — local only, not for repo
+*.py
