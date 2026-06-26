@@ -7,7 +7,7 @@
 	<parent>
 		<groupId>org.springframework.boot</groupId>
 		<artifactId>spring-boot-starter-parent</artifactId>
-		<version>3.4.5</version>
+		<version>4.0.3</version>
 		<relativePath/>
 	</parent>
 
@@ -15,11 +15,11 @@
 	<artifactId>unicorn-mcp-server</artifactId>
 	<version>0.0.1-SNAPSHOT</version>
 	<name>unicorn-mcp-server</name>
-	<description>MCP Server exposing Unicorn Rental tools</description>
+	<description>MCP Server exposing Unicorn Rental tools — Boot 4 / Spring AI 2.0 MCP Apps branch</description>
 
 	<properties>
-		<java.version>21</java.version>
-		<spring-ai.version>2.0.0-M3</spring-ai.version>
+		<java.version>25</java.version>
+		<spring-ai.version>2.0.0-SNAPSHOT</spring-ai.version>
 	</properties>
 
 	<dependencies>
@@ -28,57 +28,15 @@
 		<dependency>
 			<groupId>org.springframework.ai</groupId>
 			<artifactId>spring-ai-starter-mcp-server-webmvc</artifactId>
-			<exclusions>
-				<!-- Spring AI 2.0 uses Jackson 3.x (tools.jackson). Exclude Jackson 2.x
-				     brought in transitively to avoid classpath conflict at runtime. -->
-				<exclusion>
-					<groupId>com.fasterxml.jackson.core</groupId>
-					<artifactId>jackson-databind</artifactId>
-				</exclusion>
-				<exclusion>
-					<groupId>com.fasterxml.jackson.core</groupId>
-					<artifactId>jackson-core</artifactId>
-				</exclusion>
-				<exclusion>
-					<groupId>com.fasterxml.jackson.core</groupId>
-					<artifactId>jackson-annotations</artifactId>
-				</exclusion>
-				<exclusion>
-					<groupId>com.fasterxml.jackson.datatype</groupId>
-					<artifactId>jackson-datatype-jdk8</artifactId>
-				</exclusion>
-				<exclusion>
-					<groupId>com.fasterxml.jackson.datatype</groupId>
-					<artifactId>jackson-datatype-jsr310</artifactId>
-				</exclusion>
-				<exclusion>
-					<groupId>com.fasterxml.jackson.module</groupId>
-					<artifactId>jackson-module-parameter-names</artifactId>
-				</exclusion>
-			</exclusions>
 		</dependency>
 
 		<!-- Spring Data JPA for booking persistence -->
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-data-jpa</artifactId>
-			<exclusions>
-				<exclusion>
-					<groupId>com.fasterxml.jackson.core</groupId>
-					<artifactId>jackson-databind</artifactId>
-				</exclusion>
-				<exclusion>
-					<groupId>com.fasterxml.jackson.core</groupId>
-					<artifactId>jackson-core</artifactId>
-				</exclusion>
-				<exclusion>
-					<groupId>com.fasterxml.jackson.core</groupId>
-					<artifactId>jackson-annotations</artifactId>
-				</exclusion>
-			</exclusions>
 		</dependency>
 
-		<!-- H2 database -->
+		<!-- H2 in-memory database -->
 		<dependency>
 			<groupId>com.h2database</groupId>
 			<artifactId>h2</artifactId>
@@ -107,10 +65,16 @@
 
 	<repositories>
 		<repository>
-			<id>spring-milestones</id>
-			<name>Spring Milestones</name>
-			<url>https://repo.spring.io/milestone</url>
-			<snapshots><enabled>false</enabled></snapshots>
+			<id>spring-snapshots</id>
+			<name>Spring Snapshots</name>
+			<url>https://repo.spring.io/snapshot</url>
+			<snapshots><enabled>true</enabled></snapshots>
+		</repository>
+		<repository>
+			<id>central-snapshots</id>
+			<name>Central Snapshots</name>
+			<url>https://central.sonatype.com/repository/maven-snapshots/</url>
+			<snapshots><enabled>true</enabled></snapshots>
 		</repository>
 	</repositories>
 

@@ -209,7 +209,7 @@
         renderCalendar();
     }
 
-    // ── Confirm: push selected date into agent context (blog pattern) ───────
+    // ── Confirm: send date as a user message so agent acts immediately ─────
     confirmBtn.addEventListener("click", async () => {
         if (!selectedDate) return;
 
@@ -221,16 +221,17 @@
         confirmBtn.disabled = true;
         statusEl.textContent = "Sending date to assistant…";
 
-        // Exactly like blog's updateContext() — inject text into chat history
-        // so the agent knows the chosen date without the user typing it
-        await app.updateModelContext({
+        // sendMessage() injects as a user turn — agent sees it and acts immediately.
+        // This triggers createBooking without needing a follow-up prompt.
+        await app.sendMessage({
+            role: "user",
             content: [{
                 type: "text",
-                text: `The customer selected booking date: ${isoDate} (${humanDate}). Use this date for the unicorn booking.`
+                text: `My booking date is ${isoDate} (${humanDate}). Please complete the unicorn booking now.`
             }]
         });
 
-        statusEl.textContent = `✅ ${humanDate} confirmed — booking in progress!`;
+        statusEl.textContent = `✅ ${humanDate} sent — booking in progress!`;
     });
 
     document.getElementById("prev-btn").addEventListener("click", () => {
