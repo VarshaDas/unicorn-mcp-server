@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>Unicorn Booking — Date Picker</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: #f8f4ff;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 16px;
+        }
+
+        @media (prefers-color-scheme: dark) {
+            body { background: #1a1625; color: #e8e0f0; }
+            .calendar { background: #2a1f3d; border-color: #4a3a6a; }
+            .nav { background: #2a1f3d; }
+            .day-name { color: #a990cc; }
+            .day { color: #e8e0f0; }
+            .day:hover:not(.empty):not(.disabled) { background: #4a3a6a; }
+            .day.today { background: #3d2a5c; color: #c9a0ff; }
+            .nav-btn { color: #c9a0ff; }
+            .nav-btn:hover { background: #3d2a5c; }
+            .month-year { color: #e8e0f0; }
+            .status { color: #a990cc; }
+        }
+
+        .calendar {
+            background: white;
+            border-radius: 16px;
+            border: 1px solid #e0d4f7;
+            overflow: hidden;
+            width: 340px;
+            box-shadow: 0 4px 24px rgba(120, 60, 200, 0.12);
+        }
+
+        .header {
+            background: linear-gradient(135deg, #7c3aed, #a855f7);
+            color: white;
+            padding: 20px 16px 16px;
+            text-align: center;
+        }
+        .header .unicorn { font-size: 32px; line-height: 1; }
+        .header h2 { font-size: 15px; font-weight: 500; opacity: 0.92; margin-top: 6px; }
+
+        .nav {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px 16px;
+            background: white;
+        }
+        .nav-btn {
+            background: none; border: none; cursor: pointer;
+            color: #7c3aed; font-size: 20px;
+            width: 34px; height: 34px; border-radius: 8px;
+            display: flex; align-items: center; justify-content: center;
+            transition: background 0.15s;
+        }
+        .nav-btn:hover { background: #f3eeff; }
+        .month-year { font-weight: 600; font-size: 15px; color: #1a1625; }
+
+        .grid {
+            padding: 0 12px 8px;
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 2px;
+        }
+        .day-name {
+            text-align: center; font-size: 11px; font-weight: 600;
+            color: #9b7dc8; padding: 6px 0;
+            text-transform: uppercase; letter-spacing: 0.05em;
+        }
+        .day {
+            text-align: center; padding: 9px 4px; border-radius: 8px;
+            cursor: pointer; font-size: 13px; color: #1a1625;
+            transition: all 0.12s; user-select: none;
+        }
+        .day.empty { cursor: default; }
+        .day.disabled { color: #d0c4e8; cursor: not-allowed; }
+        .day:hover:not(.empty):not(.disabled) { background: #f3eeff; color: #7c3aed; }
+        .day.today { background: #f3eeff; color: #7c3aed; font-weight: 600; }
+        .day.selected { background: #7c3aed !important; color: white !important; font-weight: 600; }
+
+        .confirm-btn {
+            display: none;
+            width: calc(100% - 32px);
+            margin: 4px 16px 16px;
+            padding: 11px;
+            background: linear-gradient(135deg, #7c3aed, #a855f7);
+            color: white; border: none; border-radius: 10px;
+            font-size: 14px; font-weight: 600; cursor: pointer;
+            transition: opacity 0.15s;
+        }
+        .confirm-btn.visible { display: block; }
+        .confirm-btn:hover { opacity: 0.9; }
+
+        .status {
+            padding: 8px 16px 14px;
+            font-size: 12px; color: #9b7dc8;
+            text-align: center; min-height: 32px;
+        }
+    </style>
+</head>
+<body>
+<div class="calendar">
+    <div class="header">
+        <div class="unicorn">🦄</div>
+        <h2>Pick your unicorn ride date</h2>
+    </div>
+
+    <div class="nav">
+        <button class="nav-btn" id="prev-btn">&#8249;</button>
+        <span class="month-year" id="month-year"></span>
+        <button class="nav-btn" id="next-btn">&#8250;</button>
+    </div>
+
+    <div class="grid" id="calendar-grid"></div>
+
+    <button class="confirm-btn" id="confirm-btn">✨ Confirm this date</button>
+    <div class="status" id="status">Select a date above</div>
+</div>
+
+<script type="module">
+    // Same pattern as the blog's dice-app.html:
+    // 1. Import ext-apps and create an App instance
+    // 2. Connect to the MCP host
+    // 3. On confirm, call app.updateModelContext() to inject the date into chat
+    import { App } from "https://unpkg.com/@modelcontextprotocol/ext-apps@0.4.2/app-with-deps";
+
+    const app = new App({ name: "unicorn-date-picker", version: "1.0.0" });
+
+    app.connect().catch(() => {
+        // Outside an MCP host (e.g. direct browser preview) — UI still works
+        document.getElementById("status").textContent = "Preview mode — connect via MCP client to send date to agent";
+    });
+
+    // ── Calendar state ──────────────────────────────────────────────────────
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    let viewYear  = today.getFullYear();
+    let viewMonth = today.getMonth();
+    let selectedDate = null;
+
+    const MONTHS   = ["January","February","March","April","May","June",
+                      "July","August","September","October","November","December"];
+    const DAY_NAMES = ["Su","Mo","Tu","We","Th","Fr","Sa"];
+
+    const monthYearEl = document.getElementById("month-year");
+    const gridEl      = document.getElementById("calendar-grid");
+    const confirmBtn  = document.getElementById("confirm-btn");
+    const statusEl    = document.getElementById("status");
+
+    function pad(n) { return String(n).padStart(2, "0"); }
+    function toIso(d) { return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`; }
+
+    function renderCalendar() {
+        monthYearEl.textContent = `${MONTHS[viewMonth]} ${viewYear}`;
+        gridEl.innerHTML = "";
+
+        DAY_NAMES.forEach(d => {
+            const el = document.createElement("div");
+            el.className = "day-name";
+            el.textContent = d;
+            gridEl.appendChild(el);
+        });
+
+        const firstDay    = new Date(viewYear, viewMonth, 1).getDay();
+        const daysInMonth = new Date(viewYear, viewMonth + 1, 0).getDate();
+
+        for (let i = 0; i < firstDay; i++) {
+            const el = document.createElement("div");
+            el.className = "day empty";
+            gridEl.appendChild(el);
+        }
+
+        for (let d = 1; d <= daysInMonth; d++) {
+            const date = new Date(viewYear, viewMonth, d);
+            const el = document.createElement("div");
+            el.className = "day";
+            el.textContent = d;
+
+            if (date < today) {
+                el.classList.add("disabled");
+            } else {
+                if (date.toDateString() === today.toDateString()) el.classList.add("today");
+                if (selectedDate && date.toDateString() === selectedDate.toDateString()) {
+                    el.classList.add("selected");
+                }
+                el.addEventListener("click", () => selectDate(date));
+            }
+            gridEl.appendChild(el);
+        }
+    }
+
+    function selectDate(date) {
+        selectedDate = date;
+        const human = date.toLocaleDateString("en-US", {
+            weekday: "long", year: "numeric", month: "long", day: "numeric"
+        });
+        statusEl.textContent = human;
+        confirmBtn.classList.add("visible");
+        renderCalendar();
+    }
+
+    // ── Confirm: send date as a user message so agent acts immediately ─────
+    confirmBtn.addEventListener("click", async () => {
+        if (!selectedDate) return;
+
+        const isoDate  = toIso(selectedDate);
+        const humanDate = selectedDate.toLocaleDateString("en-US", {
+            weekday: "long", year: "numeric", month: "long", day: "numeric"
+        });
+
+        confirmBtn.disabled = true;
+        statusEl.textContent = "Sending date to assistant…";
+
+        // sendMessage() injects as a user turn — agent sees it and acts immediately.
+        // This triggers createBooking without needing a follow-up prompt.
+        await app.sendMessage({
+            role: "user",
+            content: [{
+                type: "text",
+                text: `My booking date is ${isoDate} (${humanDate}). Please complete the unicorn booking now.`
+            }]
+        });
+
+        statusEl.textContent = `✅ ${humanDate} sent — booking in progress!`;
+    });
+
+    document.getElementById("prev-btn").addEventListener("click", () => {
+        viewMonth--;
+        if (viewMonth < 0) { viewMonth = 11; viewYear--; }
+        renderCalendar();
+    });
+
+    document.getElementById("next-btn").addEventListener("click", () => {
+        viewMonth++;
+        if (viewMonth > 11) { viewMonth = 0; viewYear++; }
+        renderCalendar();
+    });
+
+    renderCalendar();
+</script>
+</body>
+</html>
