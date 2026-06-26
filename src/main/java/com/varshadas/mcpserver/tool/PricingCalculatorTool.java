@@ -6,14 +6,8 @@ import org.springframework.ai.tool.annotation.ToolParam;
 import org.springframework.stereotype.Component;
 
 /**
- * PHASE 1 DEMO: Rich Tool Annotations
- *
- * Key points for the talk:
- * - @McpTool replaces @Tool — adds MCP-specific metadata
- * - annotations: readOnlyHint tells clients this tool has no side effects
- * - generateOutputSchema: client receives JSON Schema of the return type
- * - @McpToolParam: gives LLMs precise formatting instructions
- * - Returns a record (not a String) — structured, parseable output
+ * Calculates the total cost for a unicorn rental.
+ * Returns a structured PricingBreakdown record with deposit split, insurance, and totals.
  */
 @Component
 public class PricingCalculatorTool {

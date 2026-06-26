@@ -42,9 +42,10 @@ public class BookingTool {
 
         var sb = new StringBuilder("Bookings for %s:\n".formatted(customerName));
         for (var b : bookings) {
-            sb.append("- ID %d: %s package on %s, %d hrs, insurance: %s\n".formatted(
+            String unit = b.getPackageName().equalsIgnoreCase("CORPORATE") ? "day(s)" : "hrs";
+            sb.append("- ID %d: %s package on %s, %d %s, insurance: %s\n".formatted(
                     b.getId(), b.getPackageName(), b.getBookingDate(), b.getDuration(),
-                    b.isIncludeInsurance() ? "yes" : "no"));
+                    unit, b.isIncludeInsurance() ? "yes" : "no"));
         }
         return sb.toString();
     }

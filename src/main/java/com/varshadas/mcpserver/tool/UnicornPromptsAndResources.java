@@ -1,94 +1,60 @@
 package com.varshadas.mcpserver.tool;
 
-import org.springframework.ai.mcp.annotation.McpArg;
-import org.springframework.ai.mcp.annotation.McpPrompt;
-import org.springframework.ai.mcp.annotation.McpResource;
-import org.springframework.stereotype.Service;
+import org.springframework.ai.tool.annotation.Tool;
+import org.springframework.ai.tool.annotation.ToolParam;
+import org.springframework.stereotype.Component;
 
 /**
- * Demo of the three MCP primitives in one class:
+ * Demonstrates MCP Resources and Prompts using @Tool (Spring AI 1.1.x compatible).
  *
- *  ┌──────────────┬────────────────────────────────────────────────────────┐
- *  │ @McpResource │ Read-only context the agent loads before acting        │
- *  │ @McpPrompt   │ Reusable prompt templates the agent uses as a starting │
- *  │              │ point for specific workflows                            │
- *  │ @McpTool     │ Actions with side effects (see BookingTool)            │
- *  └──────────────┴────────────────────────────────────────────────────────┘
+ * In Spring AI 1.1.x, Resources and Prompts are exposed as tools that return
+ * structured content. In Spring AI 2.0 these become proper @McpResource and
+ * @McpPrompt primitives visible as separate tabs in MCP Inspector.
  *
- * Demo flow in MCP Inspector:
- *  Resources tab → read "unicorn://catalogue" → agent gets package data
- *  Prompts tab   → get "booking-assistant"    → agent gets a pre-built system prompt
- *  Prompts tab   → get "cancellation-helper"  → agent gets a cancellation flow prompt
+ * Demo talking point:
+ *   "In 1.1.x everything is a tool. In 2.0, Spring AI adds first-class support
+ *    for the other two MCP primitives — Resources and Prompts. You can see them
+ *    as separate tabs in MCP Inspector."
  */
-@Service
+@Component
 public class UnicornPromptsAndResources {
 
-    // ── Resources ─────────────────────────────────────────────────────────────
-    // Resources = read-only context. The agent reads these before deciding what to do.
-    // Think: API docs, schemas, reference data. No side effects.
+    // ── Resource-style tools ──────────────────────────────────────────────────
+    // These are read-only — no side effects, just return context data.
+    // In MCP 2.0 these would be @McpResource — discoverable in Resources tab.
 
-    /**
-     * Package catalogue — the agent reads this to know what's available
-     * before answering pricing or recommendation questions.
-     *
-     * Visible in MCP Inspector → Resources tab as "unicorn://catalogue"
-     */
-    @McpResource(
-            name        = "Unicorn Package Catalogue",
-            uri         = "unicorn://catalogue",
-            mimeType    = "text/plain",
-            description = "Complete catalogue of available unicorn rental packages with pricing. " +
-                          "Read this resource before answering any questions about packages, " +
-                          "pricing, or availability."
-    )
+    @Tool(description = """
+            Returns the complete unicorn rental package catalogue with pricing.
+            Call this tool when the user asks about available packages, prices,
+            what unicorn options exist, or anything about package details.
+            This is read-only — no side effects.
+            """)
     public String getPackageCatalogue() {
         return """
                 UNICORN RENTAL — PACKAGE CATALOGUE
                 ====================================
-                
-                SPARKLE      $150/hour  — Standard unicorn. Perfect for personal celebrations.
-                                          Includes: basic grooming, standard saddle.
-                
-                RAINBOW      $300/hour  — Premium unicorn with rainbow mane and dedicated handler.
-                                          Includes: golden saddle, photo session, rainbow trail effect.
-                
-                MAGICAL_KINGDOM $500/hour — Two unicorns with full magical effects package.
-                                          Includes: glitter cannon, LED horn lighting, two handlers,
-                                          customizable music.
-                
-                CORPORATE    $1000/day  — Three unicorns for full-day corporate events.
-                                          Includes: branded accessories, event coordinator,
-                                          unlimited photo ops, catering coordination.
+                SPARKLE           $150/hour  — Standard unicorn. Perfect for personal celebrations.
+                RAINBOW           $300/hour  — Premium unicorn with rainbow mane and dedicated handler.
+                MAGICAL_KINGDOM   $500/hour  — Two unicorns with full magical effects package.
+                CORPORATE         $1000/day  — Three unicorns for full-day corporate events.
                 
                 ADD-ONS
-                -------
-                Insurance:        +$50 flat fee   (covers accidental glitter damage)
-                Security deposit: $500            (refunded after event)
+                Insurance:        +$50 flat fee
+                Security deposit: $500 (always required, fully refundable)
                 
                 PAYMENT SCHEDULE
-                ----------------
-                50% due at booking
-                50% due 24 hours before event
+                50% due at booking / 50% due 24 hours before event
                 
                 CANCELLATION POLICY
-                -------------------
-                48+ hours before: full refund
-                24–48 hours:      50% refund
-                Under 24 hours:   no refund
+                48+ hours: full refund | 24-48 hours: 50% refund | Under 24 hours: no refund
                 """;
     }
 
-    /**
-     * Pricing rules as a structured resource — the agent reads this when
-     * calculating costs so it doesn't have to guess the business logic.
-     */
-    @McpResource(
-            name        = "Unicorn Pricing Rules",
-            uri         = "unicorn://pricing-rules",
-            mimeType    = "text/plain",
-            description = "Business rules for unicorn rental pricing, deposits, and payment splits. " +
-                          "Read before performing any price calculations."
-    )
+    @Tool(description = """
+            Returns the pricing rules and formula for unicorn rental cost calculations.
+            Call this before calculating any prices or explaining payment structure.
+            This is read-only — no side effects.
+            """)
     public String getPricingRules() {
         return """
                 PRICING RULES
@@ -98,7 +64,6 @@ public class UnicornPromptsAndResources {
                 Payment split:     50% at booking / 50% due 24hrs before event
                 
                 FORMULA
-                -------
                 rental_cost    = price_per_unit × duration
                 due_at_booking = (rental_cost / 2) + security_deposit + insurance
                 due_before     = rental_cost / 2
@@ -106,26 +71,18 @@ public class UnicornPromptsAndResources {
                 """;
     }
 
-    // ── Prompts ───────────────────────────────────────────────────────────────
-    // Prompts = reusable system prompt templates. The agent uses these as
-    // a starting point for specific workflows — like named @Query in Spring Data
-    // but for LLM instructions.
+    // ── Prompt-style tools ────────────────────────────────────────────────────
+    // These return system prompt templates for specific workflows.
+    // In MCP 2.0 these would be @McpPrompt — discoverable in Prompts tab.
 
-    /**
-     * Booking assistant prompt — gives the agent a persona and workflow
-     * for handling new booking requests end-to-end.
-     *
-     * Visible in MCP Inspector → Prompts tab as "booking-assistant"
-     * Supports an optional {customerName} argument for personalisation.
-     */
-    @McpPrompt(
-            name        = "booking-assistant",
-            description = "System prompt for the unicorn booking assistant workflow. " +
-                          "Use this when starting a new booking conversation. " +
-                          "Optionally pass customerName to personalise the greeting."
-    )
-    public String bookingAssistantPrompt(
-            @McpArg(name = "customerName", description = "Customer's name for personalised greeting", required = false)
+    @Tool(description = """
+            Returns the standard booking assistant system prompt for starting a
+            new unicorn booking conversation. Use this to set the assistant persona
+            and workflow at the start of a booking session.
+            Optionally pass customerName for a personalised greeting.
+            """)
+    public String getBookingAssistantPrompt(
+            @ToolParam(description = "Customer name for personalised greeting. Optional — leave blank if unknown.")
             String customerName) {
 
         String greeting = (customerName != null && !customerName.isBlank())
@@ -133,49 +90,36 @@ public class UnicornPromptsAndResources {
                 : "Hello! ";
 
         return """
-                %sYou are a friendly and knowledgeable unicorn rental concierge for Unicorn Rentals Co.
-                
-                YOUR GOAL: Help customers book the perfect unicorn experience end-to-end.
+                %sYou are a friendly unicorn rental concierge for Unicorn Rentals Co.
                 
                 WORKFLOW:
                 1. Understand what the customer needs (occasion, group size, budget)
-                2. Read the package catalogue resource (unicorn://catalogue) to recommend the right package
-                3. If the customer hasn't specified a date, use the open-date-picker tool
-                4. Calculate the price using the calculatePrice tool
-                5. Confirm all details before creating the booking
-                6. Create the booking using createBooking and share the confirmation ID
+                2. Use getPackageCatalogue to recommend the right package
+                3. Use calculatePrice to give a full cost breakdown
+                4. Confirm all details before creating the booking with createBooking
+                5. Share the booking confirmation ID
                 
-                TONE: Warm, enthusiastic, professional. Unicorns are magical — make the customer feel that.
-                
-                ALWAYS: Mention the $500 security deposit and payment split upfront so there are no surprises.
+                ALWAYS mention the $500 security deposit and 50/50 payment split upfront.
                 """.formatted(greeting);
     }
 
-    /**
-     * Cancellation helper prompt — guides the agent through the cancellation
-     * and refund calculation workflow.
-     */
-    @McpPrompt(
-            name        = "cancellation-helper",
-            description = "System prompt for handling booking cancellation requests. " +
-                          "Use this when a customer wants to cancel or asks about refunds."
-    )
-    public String cancellationHelperPrompt() {
+    @Tool(description = """
+            Returns the cancellation handling system prompt. Use this when a customer
+            wants to cancel a booking or asks about refunds.
+            """)
+    public String getCancellationHelperPrompt() {
         return """
                 You are handling a unicorn booking cancellation request.
                 
                 WORKFLOW:
-                1. Ask for the booking ID or customer name to look up the booking (use getBookings)
-                2. Use the hoursUntil tool to calculate how far away the booking date is
-                3. Apply the cancellation policy:
-                   - 48+ hours remaining → full refund (100%)
-                   - 24–48 hours remaining → partial refund (50% of rental cost)
+                1. Look up the booking using getBookings (customer name or booking ID)
+                2. Use hoursUntil to calculate time remaining until the booking date
+                3. Apply cancellation policy:
+                   - 48+ hours remaining → full refund
+                   - 24-48 hours remaining → 50% refund
                    - Under 24 hours → no refund
-                4. Note: the $500 security deposit is ALWAYS fully refunded regardless of timing
-                5. Clearly explain the refund amount and what the customer will receive
-                
-                BE EMPATHETIC: Cancellations are disappointing. Acknowledge the customer's situation
-                before jumping into policy details.
+                4. Note: $500 security deposit is ALWAYS fully refunded
+                5. Explain the refund amount clearly and empathetically
                 """;
     }
 }
