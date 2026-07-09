@@ -10,6 +10,32 @@ over **Streamable HTTP** transport.
 - MCP Server (WebMVC / Streamable HTTP)
 - H2 in-memory database + Spring Data JPA
 
+## Architecture — One Server, Multiple Clients
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│               UNICORN MCP SERVER (port 8083)                    │
+│               Transport: Streamable HTTP at /mcp                │
+│               Runs locally on your machine                      │
+└─────────────────────────────────────────────────────────────────┘
+                          ▲           ▲
+                          │           │
+              Streamable HTTP    Streamable HTTP
+                          │           │
+            ┌─────────────┘           └─────────────┐
+            │                                       │
+┌───────────────────────┐           ┌───────────────────────────┐
+│  MCP CLIENT #1        │           │  MCP CLIENT #2            │
+│  Spring AI Agent      │           │  MCP Inspector            │
+│  (localhost:8081)     │           │  (localhost:6274)         │
+│  Has an LLM attached  │           │  No LLM — manual calls   │
+└───────────────────────┘           └───────────────────────────┘
+```
+
+One MCP server. Multiple clients connecting simultaneously — a human using Inspector,
+an AI agent doing bookings. Same protocol, same `/mcp` endpoint, different session IDs.
+That's the power of a standard.
+
 ## Branch Guide
 
 | Branch | Purpose |
